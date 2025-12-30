@@ -1,0 +1,26 @@
+# hello.pearl - the basics
+
+let name = "World"
+print("Hello, {name}!")
+
+# string interpolation with expressions
+let x = 5
+let y = 10
+print("The sum of {x} and {y} is {x + y}")
+
+# arrays
+let fruits = ["apple", "banana", "cherry"]
+print("I have {len(fruits)} fruits")
+
+for fruit in fruits {
+    print("  - {fruit}")
+}
+
+# maps
+let person = {
+    "name": "Alice",
+    "age": 30,
+    "city": "Portland"
+}
+
+print("{person[\"name\"]} is {person[\"age\"]} years old")

@@ -1,0 +1,56 @@
+# text.pearl - text processing examples
+# this is where pearl shines
+
+let text = "  Hello, World! This is Pearl.  "
+
+# basic transformations
+print("Original: '{text}'")
+print("Trimmed:  '{trim(text)}'")
+print("Upper:    '{upper(trim(text))}'")
+print("Lower:    '{lower(trim(text))}'")
+
+# pipeline style (like unix pipes)
+let result = text |> trim() |> lower() |> split(" ") |> join("-")
+print("Pipelined: {result}")
+
+# regex matching
+let email = "contact me at bob@example.com please"
+
+if email ~ /\w+@\w+\.\w+/ {
+    print("Found an email address!")
+}
+
+# extract with match()
+let matches = match(email, regex("(\\w+)@(\\w+)\\.(\\w+)"))
+if matches != null {
+    print("Full match: {matches[0]}")
+    print("User: {matches[1]}")
+    print("Domain: {matches[2]}")
+}
+
+# replacement
+let censored = replace(email, regex("\\w+@\\w+\\.\\w+"), "[EMAIL REDACTED]")
+print("Censored: {censored}")
+
+# working with lines
+let csv = "name,age,city
+alice,30,portland
+bob,25,seattle
+carol,35,denver"
+
+let rows = lines(csv)
+print("\nParsing CSV:")
+for row in rows {
+    let cols = split(row, ",")
+    if len(cols) == 3 {
+        print("  {cols[0]} is {cols[1]} from {cols[2]}")
+    }
+}
+
+# find all matches
+let log = "Error at 10:30, Warning at 11:45, Error at 12:15"
+let times = match_all(log, regex("(\\d+:\\d+)"))
+print("\nTimes found in log:")
+for t in times {
+    print("  {t[0]}")
+}

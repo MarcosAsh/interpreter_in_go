@@ -1,0 +1,64 @@
+# functions.pearl - functions and functional style
+
+# basic function
+fn greet(name) {
+    print("Hello, {name}!")
+}
+
+greet("Pearl")
+
+# function with default params
+fn greet_fancy(name, greeting = "Hello", punctuation = "!") {
+    print("{greeting}, {name}{punctuation}")
+}
+
+greet_fancy("World")
+greet_fancy("World", "Hey")
+greet_fancy("World", "Howdy", "!!!")
+
+# functions as values
+let double = fn(x) { x * 2 }
+let square = fn(x) { x * x }
+
+print("double(5) = {double(5)}")
+print("square(5) = {square(5)}")
+
+# map, filter, reduce
+let numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+let doubled = map(numbers, fn(n) { n * 2 })
+print("Doubled: {doubled}")
+
+let evens = filter(numbers, fn(n) { n % 2 == 0 })
+print("Evens: {evens}")
+
+let sum = reduce(numbers, fn(acc, n) { acc + n }, 0)
+print("Sum: {sum}")
+
+# chaining with pipes
+let result = numbers |> filter(fn(n) { n % 2 == 0 }) |> map(fn(n) { n * n }) |> reduce(fn(a, b) { a + b }, 0)
+
+print("Sum of squares of evens: {result}")
+
+# recursion
+fn factorial(n) {
+    if n <= 1 {
+        return 1
+    }
+    return n * factorial(n - 1)
+}
+
+print("factorial(5) = {factorial(5)}")
+
+# fibonacci
+fn fib(n) {
+    if n < 2 {
+        return n
+    }
+    return fib(n - 1) + fib(n - 2)
+}
+
+print("First 10 fibonacci numbers:")
+for i in 0..10 {
+    print("  fib({i}) = {fib(i)}")
+}
