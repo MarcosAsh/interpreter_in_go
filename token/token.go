@@ -71,9 +71,10 @@ const (
 	OR       = "OR"
 	NOT      = "NOT"
 	NULL     = "NULL"
-	MATCH_KW = "MATCH_KW"
 	TRY      = "TRY"
 	CATCH    = "CATCH"
+	BREAK    = "BREAK"
+	CONTINUE = "CONTINUE"
 	ARROW    = "=>"
 )
 
@@ -92,8 +93,10 @@ var keywords = map[string]TokenType{
 	"or":     OR,
 	"not":    NOT,
 	"null":   NULL,
-	"try":    TRY,
-	"catch":  CATCH,
+	"try":      TRY,
+	"catch":    CATCH,
+	"break":    BREAK,
+	"continue": CONTINUE,
 }
 
 func LookupIdent(ident string) TokenType {

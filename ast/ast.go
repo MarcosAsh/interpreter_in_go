@@ -424,19 +424,6 @@ func (ie *IndexExpression) String() string {
 	return out.String()
 }
 
-// MemberExpression: obj.field
-type MemberExpression struct {
-	Token  token.Token
-	Object Expression
-	Member *Identifier
-}
-
-func (me *MemberExpression) expressionNode()      {}
-func (me *MemberExpression) TokenLiteral() string { return me.Token.Literal }
-func (me *MemberExpression) String() string {
-	return me.Object.String() + "." + me.Member.String()
-}
-
 // PipeExpression: expr |> func
 type PipeExpression struct {
 	Token token.Token
@@ -448,6 +435,46 @@ func (pe *PipeExpression) expressionNode()      {}
 func (pe *PipeExpression) TokenLiteral() string { return pe.Token.Literal }
 func (pe *PipeExpression) String() string {
 	return pe.Left.String() + " |> " + pe.Right.String()
+}
+
+// BreakStatement: break
+type BreakStatement struct {
+	Token token.Token
+}
+
+func (bs *BreakStatement) statementNode()       {}
+func (bs *BreakStatement) TokenLiteral() string { return bs.Token.Literal }
+func (bs *BreakStatement) String() string       { return "break" }
+
+// ContinueStatement: continue
+type ContinueStatement struct {
+	Token token.Token
+}
+
+func (cs *ContinueStatement) statementNode()       {}
+func (cs *ContinueStatement) TokenLiteral() string { return cs.Token.Literal }
+func (cs *ContinueStatement) String() string       { return "continue" }
+
+// TryExpression: try { body } catch ident { handler }
+type TryExpression struct {
+	Token   token.Token
+	Body    *BlockStatement
+	CatchVar *Identifier
+	Handler *BlockStatement
+}
+
+func (te *TryExpression) expressionNode()      {}
+func (te *TryExpression) TokenLiteral() string { return te.Token.Literal }
+func (te *TryExpression) String() string {
+	var out bytes.Buffer
+	out.WriteString("try ")
+	out.WriteString(te.Body.String())
+	out.WriteString(" catch ")
+	if te.CatchVar != nil {
+		out.WriteString(te.CatchVar.String() + " ")
+	}
+	out.WriteString(te.Handler.String())
+	return out.String()
 }
 
 // AssignExpression: name = value (reassignment)

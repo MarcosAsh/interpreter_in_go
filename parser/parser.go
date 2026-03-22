@@ -87,6 +87,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.LBRACKET, p.parseArrayLiteral)
 	p.registerPrefix(token.LBRACE, p.parseMapLiteral)
 	p.registerPrefix(token.SLASH, p.parseRegexLiteral)
+	p.registerPrefix(token.TRY, p.parseTryExpression)
 
 	p.infixParseFns = make(map[token.TokenType]infixParseFn)
 	p.registerInfix(token.PLUS, p.parseInfixExpression)
@@ -207,6 +208,10 @@ func (p *Parser) parseStatement() ast.Statement {
 		return p.parseForStatement()
 	case token.WHILE:
 		return p.parseWhileStatement()
+	case token.BREAK:
+		return p.parseBreakStatement()
+	case token.CONTINUE:
+		return p.parseContinueStatement()
 	default:
 		return p.parseExpressionStatement()
 	}
@@ -287,6 +292,48 @@ func (p *Parser) parseWhileStatement() *ast.WhileStatement {
 
 	stmt.Body = p.parseBlockStatement()
 	return stmt
+}
+
+func (p *Parser) parseBreakStatement() *ast.BreakStatement {
+	stmt := &ast.BreakStatement{Token: p.curToken}
+	if p.peekTokenIs(token.SEMICOLON) || p.peekTokenIs(token.NEWLINE) {
+		p.nextToken()
+	}
+	return stmt
+}
+
+func (p *Parser) parseContinueStatement() *ast.ContinueStatement {
+	stmt := &ast.ContinueStatement{Token: p.curToken}
+	if p.peekTokenIs(token.SEMICOLON) || p.peekTokenIs(token.NEWLINE) {
+		p.nextToken()
+	}
+	return stmt
+}
+
+func (p *Parser) parseTryExpression() ast.Expression {
+	expression := &ast.TryExpression{Token: p.curToken}
+
+	if !p.expectPeek(token.LBRACE) {
+		return nil
+	}
+	expression.Body = p.parseBlockStatement()
+
+	if !p.expectPeek(token.CATCH) {
+		p.addError("expected 'catch' after try block")
+		return nil
+	}
+
+	if p.peekTokenIs(token.IDENT) {
+		p.nextToken()
+		expression.CatchVar = &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
+	}
+
+	if !p.expectPeek(token.LBRACE) {
+		return nil
+	}
+	expression.Handler = p.parseBlockStatement()
+
+	return expression
 }
 
 func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {

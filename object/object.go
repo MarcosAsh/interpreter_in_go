@@ -22,8 +22,10 @@ const (
 	BUILTIN_OBJ      = "BUILTIN"
 	ARRAY_OBJ        = "ARRAY"
 	MAP_OBJ          = "MAP"
-	REGEX_OBJ        = "REGEX"
-	RANGE_OBJ        = "RANGE"
+	REGEX_OBJ          = "REGEX"
+	RANGE_OBJ          = "RANGE"
+	BREAK_SIGNAL_OBJ   = "BREAK_SIGNAL"
+	CONTINUE_SIGNAL_OBJ = "CONTINUE_SIGNAL"
 )
 
 type Object interface {
@@ -205,6 +207,18 @@ func (m *Map) Inspect() string {
 
 	return out.String()
 }
+
+// BreakSignal signals a break from a loop
+type BreakSignal struct{}
+
+func (b *BreakSignal) Type() ObjectType { return BREAK_SIGNAL_OBJ }
+func (b *BreakSignal) Inspect() string  { return "break" }
+
+// ContinueSignal signals a continue in a loop
+type ContinueSignal struct{}
+
+func (c *ContinueSignal) Type() ObjectType { return CONTINUE_SIGNAL_OBJ }
+func (c *ContinueSignal) Inspect() string  { return "continue" }
 
 // Regex
 type Regex struct {

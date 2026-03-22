@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"pearl/ast"
 	"pearl/object"
+	"pearl/token"
 	"regexp"
 )
 
@@ -148,13 +149,26 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 
 	case *ast.AssignExpression:
 		return evalAssignExpression(node, env)
+
+	case *ast.BreakStatement:
+		return &object.BreakSignal{}
+
+	case *ast.ContinueStatement:
+		return &object.ContinueSignal{}
+
+	case *ast.TryExpression:
+		return evalTryExpression(node, env)
 	}
 
 	return nil
 }
 
-func evalProgram(program *ast.Program, env *object.Environment) object.Object {
-	var result object.Object
+func evalProgram(program *ast.Program, env *object.Environment) (result object.Object) {
+	defer func() {
+		if r := recover(); r != nil {
+			result = &object.Error{Message: fmt.Sprintf("runtime panic: %v", r)}
+		}
+	}()
 
 	for _, statement := range program.Statements {
 		result = Eval(statement, env)
@@ -178,7 +192,8 @@ func evalBlockStatement(block *ast.BlockStatement, env *object.Environment) obje
 
 		if result != nil {
 			rt := result.Type()
-			if rt == object.RETURN_VALUE_OBJ || rt == object.ERROR_OBJ {
+			if rt == object.RETURN_VALUE_OBJ || rt == object.ERROR_OBJ ||
+				rt == object.BREAK_SIGNAL_OBJ || rt == object.CONTINUE_SIGNAL_OBJ {
 				return result
 			}
 		}
@@ -286,7 +301,7 @@ func evalIdentifier(node *ast.Identifier, env *object.Environment) object.Object
 	if builtin, ok := builtins[node.Value]; ok {
 		return builtin
 	}
-	return newError("undefined variable: %s", node.Value)
+	return newErrorAt(node.Token, "undefined variable: %s", node.Value)
 }
 
 func evalPrefixExpression(operator string, right object.Object) object.Object {
@@ -511,6 +526,12 @@ func evalForStatement(fs *ast.ForStatement, env *object.Environment) object.Obje
 			if _, ok := result.(*object.ReturnValue); ok {
 				return result
 			}
+			if _, ok := result.(*object.BreakSignal); ok {
+				break
+			}
+			if _, ok := result.(*object.ContinueSignal); ok {
+				continue
+			}
 		}
 
 	case *object.Range:
@@ -523,6 +544,12 @@ func evalForStatement(fs *ast.ForStatement, env *object.Environment) object.Obje
 			}
 			if _, ok := result.(*object.ReturnValue); ok {
 				return result
+			}
+			if _, ok := result.(*object.BreakSignal); ok {
+				break
+			}
+			if _, ok := result.(*object.ContinueSignal); ok {
+				continue
 			}
 		}
 
@@ -537,6 +564,12 @@ func evalForStatement(fs *ast.ForStatement, env *object.Environment) object.Obje
 			if _, ok := result.(*object.ReturnValue); ok {
 				return result
 			}
+			if _, ok := result.(*object.BreakSignal); ok {
+				break
+			}
+			if _, ok := result.(*object.ContinueSignal); ok {
+				continue
+			}
 		}
 
 	case *object.Map:
@@ -549,6 +582,12 @@ func evalForStatement(fs *ast.ForStatement, env *object.Environment) object.Obje
 			}
 			if _, ok := result.(*object.ReturnValue); ok {
 				return result
+			}
+			if _, ok := result.(*object.BreakSignal); ok {
+				break
+			}
+			if _, ok := result.(*object.ContinueSignal); ok {
+				continue
 			}
 		}
 
@@ -577,6 +616,12 @@ func evalWhileStatement(ws *ast.WhileStatement, env *object.Environment) object.
 		}
 		if _, ok := result.(*object.ReturnValue); ok {
 			return result
+		}
+		if _, ok := result.(*object.BreakSignal); ok {
+			break
+		}
+		if _, ok := result.(*object.ContinueSignal); ok {
+			continue
 		}
 	}
 
@@ -727,9 +772,31 @@ func evalAssignExpression(ae *ast.AssignExpression, env *object.Environment) obj
 	}
 }
 
+func evalTryExpression(te *ast.TryExpression, env *object.Environment) object.Object {
+	result := Eval(te.Body, env)
+
+	if isError(result) {
+		handlerEnv := object.NewEnclosedEnvironment(env)
+		if te.CatchVar != nil {
+			handlerEnv.Set(te.CatchVar.Value, &object.String{Value: result.(*object.Error).Message})
+		}
+		return Eval(te.Handler, handlerEnv)
+	}
+
+	return result
+}
+
 func applyFunction(fn object.Object, args []object.Object, callArgs []ast.CallArg) object.Object {
 	switch fn := fn.(type) {
 	case *object.Function:
+		if len(args) > len(fn.Parameters) {
+			name := "anonymous function"
+			if fn.Name != "" {
+				name = fn.Name + "()"
+			}
+			return newError("%s takes %d argument(s), got %d",
+				name, len(fn.Parameters), len(args))
+		}
 		extendedEnv := extendFunctionEnv(fn, args, callArgs)
 		evaluated := Eval(fn.Body, extendedEnv)
 		return unwrapReturnValue(evaluated)
@@ -820,6 +887,14 @@ func nativeBoolToBooleanObject(input bool) *object.Boolean {
 
 func newError(format string, a ...interface{}) *object.Error {
 	return &object.Error{Message: fmt.Sprintf(format, a...)}
+}
+
+func newErrorAt(tok token.Token, format string, a ...interface{}) *object.Error {
+	return &object.Error{
+		Message: fmt.Sprintf(format, a...),
+		Line:    tok.Line,
+		Col:     tok.Col,
+	}
 }
 
 func isError(obj object.Object) bool {
